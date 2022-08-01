@@ -92,8 +92,6 @@ func TestAop(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal("expect nil but get ", err)
-	} else {
-		t.Log(v[0].(string))
 	}
 
 	v, err = p.Call("BGet", "world")
@@ -143,5 +141,43 @@ func TestAop(t *testing.T) {
 	}
 	if v[1].(int) != len("helloworld") {
 		t.Fatal("expect 10 but get ", v[1].(int))
+	}
+}
+
+func TestLog(t *testing.T) {
+	o := &testStruct{}
+	p := aop.New(o)
+	advice := func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+		fmt.Println("param:  ", fmt.Sprintln(params...))
+		rets := invocation.Invoke(params)
+		fmt.Println("result: ", fmt.Sprintln(rets...))
+		return rets
+	}
+	err := p.AddJoinPoint("AGet", advice)
+	if err != nil {
+		t.Fatal("expect nil but get ", err)
+	}
+	err = p.AddJoinPoint("BGet", advice)
+	if err != nil {
+		t.Fatal("expect nil but get ", err)
+	}
+	err = p.AddJoinPoint("Concat", advice)
+	if err != nil {
+		t.Fatal("expect nil but get ", err)
+	}
+
+	_, err = p.Call("AGet", "hello")
+	if err != nil {
+		t.Fatal("expect nil but get ", err)
+	}
+
+	_, err = p.Call("BGet", "world")
+	if err != nil {
+		t.Fatal("expect nil but get ", err)
+	}
+
+	_, err = p.Call("Concat", "hello", "world")
+	if err != nil {
+		t.Fatal("expect nil but get ", err)
 	}
 }
