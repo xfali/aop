@@ -28,14 +28,16 @@ type meta struct {
 }
 
 type defaultProxy struct {
-	value      reflect.Value
-	joinPoints map[JoinPoint]*meta
+	value       reflect.Value
+	joinPoints  map[JoinPoint]*meta
+	methodIndex map[string]int
 }
 
 func New(obj interface{}) *defaultProxy {
 	ret := &defaultProxy{
-		value:      reflect.ValueOf(obj),
-		joinPoints: make(map[JoinPoint]*meta),
+		value:       reflect.ValueOf(obj),
+		joinPoints:  make(map[JoinPoint]*meta),
+		methodIndex: map[string]int{},
 	}
 	return ret
 }
@@ -70,20 +72,31 @@ func (aop *defaultProxy) findJoinPoint(method string) *meta {
 }
 
 func (aop *defaultProxy) invokeDefault(method string, params ...interface{}) ([]interface{}, error) {
-	m := aop.value.MethodByName(method)
-	if !m.IsValid() || m.IsZero() {
-		return nil, fmt.Errorf("Cannot found type %s with method %s ", aop.value.Type().String(), method)
+	if index, ok := aop.methodIndex[method]; ok {
+		return call(aop.value.Method(index), params...), nil
 	}
 
-	return call(m, params...), nil
+	mt, ok := aop.value.Type().MethodByName(method)
+	if !ok {
+		return nil, fmt.Errorf("Cannot found type %s with method %s ", aop.value.Type().String(), method)
+	}
+	aop.methodIndex[method] = mt.Index
+
+	return call(aop.value.Method(mt.Index), params...), nil
 }
 
 func call(method reflect.Value, params ...interface{}) []interface{} {
-	pv := make([]reflect.Value, len(params))
-	for i, p := range params {
-		pv[i] = reflect.ValueOf(p)
+	var ret []reflect.Value
+	if len(params) > 0 {
+		pv := make([]reflect.Value, len(params))
+		for i, p := range params {
+			pv[i] = reflect.ValueOf(p)
+		}
+		ret = method.Call(pv)
+	} else {
+		ret = method.Call(nil)
 	}
-	ret := method.Call(pv)
+
 	if len(ret) > 0 {
 		results := make([]interface{}, len(ret))
 		for i, v := range ret {

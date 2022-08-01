@@ -130,4 +130,18 @@ func TestAop(t *testing.T) {
 	if v[1].(int) != len("helloworld") {
 		t.Fatal("expect 10 but get ", v[1].(int))
 	}
+
+	v, err = p.Call("Concat", "hello", "world")
+	if err != nil {
+		t.Fatal("expect nil but get ", err)
+	} else {
+		t.Log(v[0].(string))
+	}
+
+	if v[0].(string) != "helloworld" {
+		t.Fatal("expect helloworld but get ", v[0].(string))
+	}
+	if v[1].(int) != len("helloworld") {
+		t.Fatal("expect 10 but get ", v[1].(int))
+	}
 }
