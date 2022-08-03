@@ -52,26 +52,20 @@ func (t testStruct) Concat(a, b string) (string, int) {
 
 func TestAop(t *testing.T) {
 	o := &testStruct{}
-	p := aop.New(o)
-	err := p.AddJoinPoint("xx", func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+	p := aop.NewSimple(o)
+	p.AddAdvisor(aop.MethodNamePointCut("xx"), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
 		fmt.Println("before AGet")
 		v := invocation.Invoke(params)
 		fmt.Println("after AGet")
 		return v
 	})
-	if err == nil {
-		t.Fatal("expect not nil but get ", err)
-	}
 
-	err = p.AddJoinPoint("AGet", func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+	p.AddAdvisor(aop.MethodNamePointCut("AGet"), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
 		fmt.Println("before AGet")
 		v := invocation.Invoke(params)
 		fmt.Println("after AGet")
 		return v
 	})
-	if err != nil {
-		t.Fatal("expect nil but get ", err)
-	}
 
 	v, err := p.Call("AGet", "hello")
 	if err != nil {
@@ -82,7 +76,7 @@ func TestAop(t *testing.T) {
 		t.Fatal("expect hello but get ", v[0].(string))
 	}
 
-	err = p.AddJoinPoint("BGet", func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+	p.AddAdvisor(aop.MethodNamePointCut("BGet"), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
 		fmt.Println("before BGet")
 		params[0] = params[0].(string) + "p1"
 		v := invocation.Invoke(params)
@@ -90,10 +84,6 @@ func TestAop(t *testing.T) {
 		v[0] = v[0].(string) + "r1"
 		return v
 	})
-	if err != nil {
-		t.Fatal("expect nil but get ", err)
-	}
-
 	v, err = p.Call("BGet", "world")
 	if err != nil {
 		t.Fatal("expect nil but get ", err)
@@ -146,27 +136,18 @@ func TestAop(t *testing.T) {
 
 func TestLog(t *testing.T) {
 	o := &testStruct{}
-	p := aop.New(o)
+	p := aop.NewSimple(o)
 	advice := func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
 		fmt.Println("param:  ", fmt.Sprintln(params...))
 		rets := invocation.Invoke(params)
 		fmt.Println("result: ", fmt.Sprintln(rets...))
 		return rets
 	}
-	err := p.AddJoinPoint("AGet", advice)
-	if err != nil {
-		t.Fatal("expect nil but get ", err)
-	}
-	err = p.AddJoinPoint("BGet", advice)
-	if err != nil {
-		t.Fatal("expect nil but get ", err)
-	}
-	err = p.AddJoinPoint("Concat", advice)
-	if err != nil {
-		t.Fatal("expect nil but get ", err)
-	}
+	p.AddAdvisor(aop.MethodNamePointCut("AGet"), advice).
+		AddAdvisor(aop.MethodNamePointCut("BGet"), advice).
+		AddAdvisor(aop.MethodNamePointCut("Concat"), advice)
 
-	_, err = p.Call("AGet", "hello")
+	_, err := p.Call("AGet", "hello")
 	if err != nil {
 		t.Fatal("expect nil but get ", err)
 	}

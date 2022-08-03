@@ -24,7 +24,9 @@ type Invocation interface {
 	Invoke(params []interface{}) (ret []interface{})
 }
 
-type JoinPoint string
+type PointCut interface {
+	Matches(method string) bool
+}
 
 type Advice func(invocation Invocation, params []interface{}) (ret []interface{})
 
@@ -33,7 +35,7 @@ type Proxy interface {
 	// joinPoint： 如方法名
 	// advice： 在连接点触发的动作
 	// 添加成功返回nil，否则返回错误
-	AddJoinPoint(joinPoint JoinPoint, advice Advice) error
+	AddAdvisor(pointCut PointCut, advice Advice) Proxy
 
 	// Call 调用方法
 	// method： 方法名
