@@ -30,16 +30,18 @@ type meta struct {
 }
 
 type simpleProxy struct {
+	t           reflect.Type
 	value       reflect.Value
 	pointCuts   map[PointCut]*meta
-	methodIndex map[string]int
+	methodIndex map[string]reflect.Method
 }
 
 func NewSimple(obj interface{}) *simpleProxy {
 	ret := &simpleProxy{
+		t:           reflect.TypeOf(obj),
 		value:       reflect.ValueOf(obj),
 		pointCuts:   make(map[PointCut]*meta),
-		methodIndex: make(map[string]int),
+		methodIndex: make(map[string]reflect.Method),
 	}
 	return ret
 }
@@ -50,26 +52,26 @@ func (aop *simpleProxy) AddAdvisor(pointCut PointCut, advice Advice) Proxy {
 }
 
 func (aop *simpleProxy) Call(method string, params ...interface{}) (ret []interface{}, err error) {
-	m, err := aop.findJoinPoint(method)
+	mt, err := aop.findMethod(method)
+	if err != nil {
+		return nil, err
+	}
+	m, err := aop.findJoinPoint(mt)
 	if err != nil {
 		return nil, err
 	}
 	if m == nil {
-		return aop.invokeDefault(method, params...)
+		return call(aop.value.Method(mt.Index), params...)
 	}
 	return m.advice(m.invocation, params), nil
 }
 
-func (aop *simpleProxy) findJoinPoint(method string) (*meta, error) {
+func (aop *simpleProxy) findJoinPoint(method reflect.Method) (*meta, error) {
 	for k, v := range aop.pointCuts {
-		if k.Matches(method) {
+		if k.Matches(method, aop.t) {
 			v.lock.Lock()
 			if v.invocation == nil {
-				m, err := aop.findMethod(method)
-				if err != nil {
-					return v, err
-				}
-				v.invocation = createInvocation(m)
+				v.invocation = createInvocation(aop.value.Method(method.Index))
 			}
 			v.lock.Unlock()
 			return v, nil
@@ -78,17 +80,17 @@ func (aop *simpleProxy) findJoinPoint(method string) (*meta, error) {
 	return nil, nil
 }
 
-func (aop *simpleProxy) findMethod(method string) (reflect.Value, error) {
-	if index, ok := aop.methodIndex[method]; ok {
-		return aop.value.Method(index), nil
+func (aop *simpleProxy) findMethod(method string) (reflect.Method, error) {
+	if mt, ok := aop.methodIndex[method]; ok {
+		return mt, nil
 	}
 
 	mt, ok := aop.value.Type().MethodByName(method)
 	if !ok {
-		return reflect.Value{}, fmt.Errorf("Cannot found type %s with method %s ", aop.value.Type().String(), method)
+		return reflect.Method{}, fmt.Errorf("Cannot found type %s with method %s ", aop.value.Type().String(), method)
 	}
-	aop.methodIndex[method] = mt.Index
-	return aop.value.Method(mt.Index), nil
+	aop.methodIndex[method] = mt
+	return mt, nil
 }
 
 func (aop *simpleProxy) invokeDefault(method string, params ...interface{}) ([]interface{}, error) {
@@ -96,7 +98,7 @@ func (aop *simpleProxy) invokeDefault(method string, params ...interface{}) ([]i
 	if err != nil {
 		return nil, err
 	}
-	return call(v, params...)
+	return call(aop.value.Method(v.Index), params...)
 }
 
 func call(method reflect.Value, params ...interface{}) ([]interface{}, error) {
@@ -143,8 +145,8 @@ func createInvocation(method reflect.Value) Invocation {
 
 type defaultPointCut string
 
-func (p defaultPointCut) Matches(method string) bool {
-	return string(p) == method
+func (p defaultPointCut) Matches(method reflect.Method, instanceType reflect.Type) bool {
+	return string(p) == method.Name
 }
 
 func MethodNamePointCut(method string) PointCut {

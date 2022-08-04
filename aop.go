@@ -17,6 +17,8 @@
 
 package aop
 
+import "reflect"
+
 type Invocation interface {
 	// Invoke 指定方法调用
 	// params： 调用方法参数
@@ -25,7 +27,7 @@ type Invocation interface {
 }
 
 type PointCut interface {
-	Matches(method string) bool
+	Matches(method reflect.Method, instanceType reflect.Type) bool
 }
 
 type Advice func(invocation Invocation, params []interface{}) (ret []interface{})
