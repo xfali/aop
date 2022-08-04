@@ -22,16 +22,21 @@ import (
 	"regexp"
 )
 
+type typeStringer func(t reflect.Type) string
+type methodStringer func(t reflect.Method) string
+
 type regexpPointCut struct {
-	typeRegexp   *regexp.Regexp
-	methodRegexp *regexp.Regexp
+	typeRegexp     *regexp.Regexp
+	methodRegexp   *regexp.Regexp
+	methodStringer methodStringer
+	typeStringer   typeStringer
 }
 
 func (p *regexpPointCut) Matches(method reflect.Method, instanceType reflect.Type, params ...interface{}) bool {
 	if !methodfunc.CheckMethod(method, instanceType, params) {
 		return false
 	}
-	tname := instanceType.String()
+	tname := p.typeStringer(instanceType)
 	if p.typeRegexp != nil && !p.typeRegexp.Match([]byte(tname)) {
 		return false
 	}
@@ -41,8 +46,16 @@ func (p *regexpPointCut) Matches(method reflect.Method, instanceType reflect.Typ
 	return true
 }
 
-func PointCutRegExp(instanceType, method string) *regexpPointCut {
+func PointCutRegExp(instanceType, method string, typeStringer typeStringer, methodStringer methodStringer) *regexpPointCut {
+	if typeStringer == nil {
+		typeStringer = defaultTypeStringer
+	}
+	if methodStringer == nil {
+		methodStringer = defaultMethodStringer
+	}
 	ret := &regexpPointCut{
+		typeStringer:   typeStringer,
+		methodStringer: methodStringer,
 	}
 	if instanceType != "" {
 		ret.typeRegexp = regexp.MustCompile(instanceType)
@@ -51,4 +64,12 @@ func PointCutRegExp(instanceType, method string) *regexpPointCut {
 		ret.methodRegexp = regexp.MustCompile(method)
 	}
 	return ret
+}
+
+func defaultMethodStringer(m reflect.Method) string {
+	return m.Name
+}
+
+func defaultTypeStringer(t reflect.Type) string {
+	return t.String()
 }

@@ -20,6 +20,7 @@ package test
 import (
 	"fmt"
 	"github.com/xfali/aop"
+	"reflect"
 	"testing"
 )
 
@@ -166,21 +167,23 @@ func TestLog(t *testing.T) {
 func TestRegExp(t *testing.T) {
 	o := &testStruct{}
 	p := aop.NewSimple(o)
-	p.AddAdvisor(aop.PointCutRegExp("", "(.*?)"), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
-		fmt.Println("all have before AGet")
-		v := invocation.Invoke(params)
-		fmt.Println("all have after AGet")
-		return v
-	})
+	//p.AddAdvisor(aop.PointCutRegExp("", "(.*?)", nil, nil), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+	//	fmt.Println("all have before AGet")
+	//	v := invocation.Invoke(params)
+	//	fmt.Println("all have after AGet")
+	//	return v
+	//})
 
-	p.AddAdvisor(aop.PointCutRegExp("", `xx`), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+	p.AddAdvisor(aop.PointCutRegExp("", `xx`, nil, func(t reflect.Method) string {
+		return t.Name
+	}), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
 		fmt.Println("before AGet")
 		v := invocation.Invoke(params)
 		fmt.Println("after AGet")
 		return v
 	})
 
-	p.AddAdvisor(aop.PointCutRegExp("", `AGet`), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+	p.AddAdvisor(aop.PointCutRegExp("", `AGet`, nil, nil), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
 		fmt.Println("before AGet")
 		v := invocation.Invoke(params)
 		fmt.Println("after AGet")
@@ -196,7 +199,7 @@ func TestRegExp(t *testing.T) {
 		t.Fatal("expect hello but get ", v[0].(string))
 	}
 
-	p.AddAdvisor(aop.PointCutRegExp("", `BGet`), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+	p.AddAdvisor(aop.PointCutRegExp("", `BGet`, nil, nil), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
 		fmt.Println("before BGet")
 		params[0] = params[0].(string) + "p1"
 		v := invocation.Invoke(params)
