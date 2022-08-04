@@ -27,7 +27,7 @@ type Invocation interface {
 }
 
 type PointCut interface {
-	Matches(method reflect.Method, instanceType reflect.Type) bool
+	Matches(method reflect.Method, instanceType reflect.Type, params ...interface{}) bool
 }
 
 type Advice func(invocation Invocation, params []interface{}) (ret []interface{})

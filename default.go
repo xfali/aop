@@ -19,6 +19,7 @@ package aop
 
 import (
 	"fmt"
+	"github.com/xfali/aop/methodfunc"
 	"reflect"
 	"sync"
 )
@@ -56,7 +57,7 @@ func (aop *simpleProxy) Call(method string, params ...interface{}) (ret []interf
 	if err != nil {
 		return nil, err
 	}
-	m, err := aop.findJoinPoint(mt)
+	m, err := aop.findJoinPoint(mt, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,9 +67,9 @@ func (aop *simpleProxy) Call(method string, params ...interface{}) (ret []interf
 	return m.advice(m.invocation, params), nil
 }
 
-func (aop *simpleProxy) findJoinPoint(method reflect.Method) (*meta, error) {
+func (aop *simpleProxy) findJoinPoint(method reflect.Method, params ...interface{}) (*meta, error) {
 	for k, v := range aop.pointCuts {
-		if k.Matches(method, aop.t) {
+		if k.Matches(method, aop.t, params...) {
 			v.lock.Lock()
 			if v.invocation == nil {
 				v.invocation = createInvocation(aop.value.Method(method.Index))
@@ -145,10 +146,13 @@ func createInvocation(method reflect.Value) Invocation {
 
 type defaultPointCut string
 
-func (p defaultPointCut) Matches(method reflect.Method, instanceType reflect.Type) bool {
+func (p defaultPointCut) Matches(method reflect.Method, instanceType reflect.Type, params ...interface{}) bool {
+	if !methodfunc.CheckMethod(method, instanceType, params) {
+		return false
+	}
 	return string(p) == method.Name
 }
 
-func MethodNamePointCut(method string) PointCut {
+func PointCutMethodName(method string) PointCut {
 	return defaultPointCut(method)
 }
