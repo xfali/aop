@@ -57,7 +57,7 @@ func (aop *simpleProxy) Call(method string, params ...interface{}) (ret []interf
 	if err != nil {
 		return nil, err
 	}
-	m, err := aop.findJoinPoint(mt, params...)
+	m, err := aop.findAdvisor(mt, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -67,12 +67,12 @@ func (aop *simpleProxy) Call(method string, params ...interface{}) (ret []interf
 	return m.advice(m.invocation, params), nil
 }
 
-func (aop *simpleProxy) findJoinPoint(method reflect.Method, params ...interface{}) (*meta, error) {
+func (aop *simpleProxy) findAdvisor(method reflect.Method, params ...interface{}) (*meta, error) {
 	for k, v := range aop.pointCuts {
 		if k.Matches(method, aop.t, params...) {
 			v.lock.Lock()
 			if v.invocation == nil {
-				v.invocation = createInvocation(aop.value.Method(method.Index))
+				v.invocation = newInvocation(aop.value.Method(method.Index))
 			}
 			v.lock.Unlock()
 			return v, nil
@@ -140,7 +140,7 @@ func (i *defaultInvocation) Invoke(params []interface{}) []interface{} {
 	return ret
 }
 
-func createInvocation(method reflect.Value) Invocation {
+func newInvocation(method reflect.Value) *defaultInvocation {
 	return &defaultInvocation{method: method}
 }
 

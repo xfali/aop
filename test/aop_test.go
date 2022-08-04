@@ -256,3 +256,105 @@ func TestRegExp(t *testing.T) {
 		t.Fatal("expect 10 but get ", v[1].(int))
 	}
 }
+
+func TestChainRegExp(t *testing.T) {
+	o := &testStruct{}
+	p := aop.New(o)
+	p.AddAdvisor(aop.PointCutRegExp("", "(.*?)", nil, nil), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+		fmt.Println("all have before")
+		v := invocation.Invoke(params)
+		fmt.Println("all have after")
+		return v
+	})
+
+	p.AddAdvisor(aop.PointCutRegExp("", `xx`, nil, func(t reflect.Method) string {
+		return t.Name
+	}), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+		fmt.Println("before AGet")
+		v := invocation.Invoke(params)
+		fmt.Println("after AGet")
+		return v
+	})
+
+	p.AddAdvisor(aop.PointCutRegExp("", `AGet`, nil, nil), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+		fmt.Println("before AGet")
+		v := invocation.Invoke(params)
+		fmt.Println("after AGet")
+		return v
+	})
+
+	v, err := p.Call("AGet", "hello")
+	if err != nil {
+		t.Fatal("expect nil but get ", err)
+	}
+
+	if v[0].(string) != "hello" {
+		t.Fatal("expect hello but get ", v[0].(string))
+	}
+
+	v, err = p.Call("AGet", "hello")
+	if err != nil {
+		t.Fatal("expect nil but get ", err)
+	}
+
+	if v[0].(string) != "hello" {
+		t.Fatal("expect hello but get ", v[0].(string))
+	}
+
+	p.AddAdvisor(aop.PointCutRegExp("", `BGet`, nil, nil), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+		fmt.Println("before BGet")
+		params[0] = params[0].(string) + "p1"
+		v := invocation.Invoke(params)
+		fmt.Println("after BGet")
+		v[0] = v[0].(string) + "r1"
+		return v
+	})
+	v, err = p.Call("BGet", "world")
+	if err != nil {
+		t.Fatal("expect nil but get ", err)
+	}
+
+	if v[0].(string) != "worldp1r1" {
+		t.Fatal("expect worldp1r1 but get ", v[0].(string))
+	} else {
+		t.Log(v[0].(string))
+	}
+	if v[1].(int) != len("worldp1") {
+		t.Fatal("expect 7 but get ", v[1].(int))
+	}
+
+	v, err = p.Call("NotExistMethod", "?")
+	if err == nil {
+		t.Fatal("expect nil but ", err)
+	} else {
+		t.Log(err)
+	}
+
+	v, err = p.Call("Concat", "hello", "world")
+	if err != nil {
+		t.Fatal("expect nil but get ", err)
+	} else {
+		t.Log(v[0].(string))
+	}
+
+	if v[0].(string) != "helloworld" {
+		t.Fatal("expect helloworld but get ", v[0].(string))
+	}
+	if v[1].(int) != len("helloworld") {
+		t.Fatal("expect 10 but get ", v[1].(int))
+	}
+
+	v, err = p.Call("Concat", "hello", "world")
+	if err != nil {
+		t.Fatal("expect nil but get ", err)
+	} else {
+		t.Log(v[0].(string))
+	}
+
+	if v[0].(string) != "helloworld" {
+		t.Fatal("expect helloworld but get ", v[0].(string))
+	}
+	if v[1].(int) != len("helloworld") {
+		t.Fatal("expect 10 but get ", v[1].(int))
+	}
+}
