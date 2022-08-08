@@ -257,17 +257,6 @@ func TestRegExp(t *testing.T) {
 	}
 }
 
-func TestChainProxy(t *testing.T) {
-	o := &testStruct{}
-	p := aop.New(o)
-	p.AddAdvisor(aop.PointCutRegExp("", "(.*?)", nil, nil), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
-		fmt.Println("all have before")
-		v := invocation.Invoke(params)
-		fmt.Println("all have after")
-		return v
-	})
-}
-
 func TestChainRegExp(t *testing.T) {
 	o := &testStruct{}
 	p := aop.New(o)
@@ -320,18 +309,28 @@ func TestChainRegExp(t *testing.T) {
 		v[0] = v[0].(string) + "r1"
 		return v
 	})
+
+	p.AddAdvisor(aop.PointCutRegExp("", `BGet`, nil, nil), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+		fmt.Println("before BGet twice")
+		params[0] = params[0].(string) + "p2"
+		v := invocation.Invoke(params)
+		fmt.Println("after BGet twice")
+		v[0] = v[0].(string) + "r2"
+		return v
+	})
+
 	v, err = p.Call("BGet", "world")
 	if err != nil {
 		t.Fatal("expect nil but get ", err)
 	}
 
-	if v[0].(string) != "worldp1r1" {
-		t.Fatal("expect worldp1r1 but get ", v[0].(string))
+	if v[0].(string) != "worldp1p2r2r1" {
+		t.Fatal("expect worldp1p2r2r1 but get ", v[0].(string))
 	} else {
 		t.Log(v[0].(string))
 	}
-	if v[1].(int) != len("worldp1") {
-		t.Fatal("expect 7 but get ", v[1].(int))
+	if v[1].(int) != len("worldp1p2") {
+		t.Fatal("expect 9 but get ", v[1].(int))
 	}
 
 	v, err = p.Call("NotExistMethod", "?")
