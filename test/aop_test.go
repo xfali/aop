@@ -257,6 +257,17 @@ func TestRegExp(t *testing.T) {
 	}
 }
 
+func TestChainProxy(t *testing.T) {
+	o := &testStruct{}
+	p := aop.New(o)
+	p.AddAdvisor(aop.PointCutRegExp("", "(.*?)", nil, nil), func(invocation aop.Invocation, params []interface{}) (ret []interface{}) {
+		fmt.Println("all have before")
+		v := invocation.Invoke(params)
+		fmt.Println("all have after")
+		return v
+	})
+}
+
 func TestChainRegExp(t *testing.T) {
 	o := &testStruct{}
 	p := aop.New(o)

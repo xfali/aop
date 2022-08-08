@@ -84,23 +84,23 @@ func (aop *chainProxy) findAdvisor(method reflect.Method, params ...interface{})
 		return d.advice, d.invocation
 	}
 	var advice Advice
-	var invocation Invocation
-	for _, v := range aop.advisors {
+	var invocation Invocation = newInvocation(aop.value.Method(method.Index))
+	last := invocation
+	for i := len(aop.advisors) - 1; i >= 0; i-- {
+		v := aop.advisors[i]
 		if v.pointCut.Matches(method, aop.t, params...) {
-			if advice == nil {
-				advice = v.advice
-				invocation = newInvocation(aop.value.Method(method.Index))
-			} else {
-				invocation = newChainInvocation(v.advice, invocation)
-			}
+			advice = v.advice
+			last = invocation
+			// first
+			invocation = newChainInvocation(v.advice, last)
 		}
 	}
 
 	aop.adviceDatas[key] = &adviceData{
 		advice:     advice,
-		invocation: invocation,
+		invocation: last,
 	}
-	return advice, invocation
+	return advice, last
 }
 
 func getKey(method reflect.Method, t reflect.Type) string {
