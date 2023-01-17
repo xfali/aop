@@ -24,6 +24,9 @@ type Invocation interface {
 	// params： 调用方法参数
 	// ret： 返回调用后的结果
 	Invoke(params []interface{}) (ret []interface{})
+
+	// MethodName 返回方法名
+	MethodName() string
 }
 
 type PointCut interface {

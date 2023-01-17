@@ -203,6 +203,7 @@ func TestRegExp(t *testing.T) {
 		fmt.Println("before BGet")
 		params[0] = params[0].(string) + "p1"
 		v := invocation.Invoke(params)
+		fmt.Println("==========================", invocation.MethodName())
 		fmt.Println("after BGet")
 		v[0] = v[0].(string) + "r1"
 		return v
@@ -264,6 +265,7 @@ func TestChainRegExp(t *testing.T) {
 		fmt.Println("all have before")
 		v := invocation.Invoke(params)
 		fmt.Println("all have after")
+		fmt.Println("==========================", invocation.MethodName())
 		return v
 	})
 

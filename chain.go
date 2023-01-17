@@ -84,7 +84,7 @@ func (aop *chainProxy) findAdvisor(method reflect.Method, params ...interface{})
 		return d.advice, d.invocation
 	}
 	var advice Advice
-	var invocation Invocation = newInvocation(aop.value.Method(method.Index))
+	var invocation Invocation = newInvocation(method.Name, aop.value.Method(method.Index))
 	last := invocation
 	for i := len(aop.advisors) - 1; i >= 0; i-- {
 		v := aop.advisors[i]
@@ -138,6 +138,10 @@ type chainInvocation struct {
 
 func (i *chainInvocation) Invoke(params []interface{}) []interface{} {
 	return i.advice(i.invocation, params)
+}
+
+func (i *chainInvocation) MethodName() string {
+	return i.invocation.MethodName()
 }
 
 func newChainInvocation(advice Advice, invocation Invocation) *chainInvocation {

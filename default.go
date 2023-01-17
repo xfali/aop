@@ -72,7 +72,7 @@ func (aop *simpleProxy) findAdvisor(method reflect.Method, params ...interface{}
 		if k.Matches(method, aop.t, params...) {
 			v.lock.Lock()
 			if v.invocation == nil {
-				v.invocation = newInvocation(aop.value.Method(method.Index))
+				v.invocation = newInvocation(method.Name, aop.value.Method(method.Index))
 			}
 			v.lock.Unlock()
 			return v, nil
@@ -129,6 +129,7 @@ func call(method reflect.Value, params ...interface{}) ([]interface{}, error) {
 }
 
 type defaultInvocation struct {
+	name   string
 	method reflect.Value
 }
 
@@ -140,8 +141,15 @@ func (i *defaultInvocation) Invoke(params []interface{}) []interface{} {
 	return ret
 }
 
-func newInvocation(method reflect.Value) *defaultInvocation {
-	return &defaultInvocation{method: method}
+func (i *defaultInvocation) MethodName() string {
+	return i.name
+}
+
+func newInvocation(name string, method reflect.Value) *defaultInvocation {
+	return &defaultInvocation{
+		name:   name,
+		method: method,
+	}
 }
 
 type defaultPointCut string
